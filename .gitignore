@@ -1,0 +1,12 @@
+# Trae specific
+.trae/
+*.log
+*.tmp
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# IDE specific
+.vscode/
+.idea/
