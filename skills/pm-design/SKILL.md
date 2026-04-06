@@ -1,31 +1,62 @@
 ---
 name: pm-design
-description: 设计业务流程、用户故事与页面结构
+description: 设计业务流程、用户故事与页面结构。当产品需求进入系统调研与架构设计阶段（通常由 pm-workflow 的阶段 2 触发），或需要输出概念设计(Concept\_Design)、用户旅程图(User\_Journey\_Map)、业务流程图(Business\_Flow)及页面结构(Page\_Structure)时使用此技能。
 ---
 
-# PM Design Skill
+***
 
-Use this skill to translate requirements into detailed product designs.
+name: pm-design
+description: 设计业务流程、用户故事与页面结构。当产品需求进入系统调研与架构设计阶段（通常由 pm-workflow 的阶段 2 触发），或需要输出概念设计(Concept\_Design)、用户旅程图(User\_Journey\_Map)、业务流程图(Business\_Flow)及页面结构(Page\_Structure)时使用此技能。
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-## Workflow
+# PM Design 技能 (产品设计)
 
-1.  **User Stories & Journey Map**:
-    *   Based on `Requirement_Background.md`, generate:
-        *   `Background/User_Stories.md`: 3-5 key user stories. (Ref: `references/Example_Stories.md`)
-        *   `Flow/User_Journey_Map.md`: Table format. (Ref: `references/Example_Journey.md`)
-    *   Confirm with user.
+使用此技能将需求转化为详细的产品设计文档。
 
-2.  **Business Process Design**:
-    *   **Analysis & Hypothesis**: Before drawing, describe the proposed flow logic in text. Ask: "I plan to design the flow as follows... Any edge cases to add?"
-    *   Create `Flow/Business_Flow.md`: High-level flowchart (Mermaid).
-    *   Create `Flow/Business_Flow_Detailed.md`: Detailed Swimlane diagram. (Ref: `references/Example_Flow.md`)
-    *   **Rule**: Ensure logic covers happy path and edge cases (errors, timeouts).
-    *   Confirm with user.
+## 工作流 (Workflow)
 
-3.  **Information Architecture (IA)**:
-    *   **Analysis & Hypothesis**: Before creating the file, list the proposed page hierarchy and key fields. Ask: "Here is the draft page structure... Does this cover all data points?"
-    *   Create `Page_Structure.md`. (Ref: `references/Example_PageStructure.md`)
-    *   Define page hierarchy (e.g., Home -> Detail -> Result).
-    *   List fields, actions, and logic for each page.
-    *   **Rule**: Use "Product Manager" terminology (not database schema).
-    *   Confirm with user.
+1. **阶段 0: 上下文分析与系统调研 (阶段门禁)**:
+   - **分析**: 阅读 `Requirement_Background.md`，提取其中的核心目标、受众与关键场景。
+   - **深度交互式访谈 (强制多轮)**:
+     - **强制暂停与定调提问**: 阅读完背景后，**必须立即暂停并向用户提出首个核心问题**：“请问这是一个**全新的系统/模块**，还是对**现有系统的迭代/修改**？”。等待用户明确回答后，再根据其回答决定后续的预判方向。
+     - **带预想的追问 (基于定调)**:
+       - 如果是**迭代/现有系统**：你**必须主动预判**该需求可能引发的系统冲突、受影响的现有页面或数据流转问题，并抛出带预想的提问。（例如：“为了确保新设计不破坏原有逻辑，我预想可能会影响现有的\[某某模块]数据。针对这一点，目前系统是采用 A 方案还是 B 方案处理的？”）
+       - 如果是**全新系统**：你**必须主动预判**该新系统未来可能的扩展性或与其他周边系统的集成点，并抛出提问。（例如：“既然是全新系统，我预想未来可能需要和现有的\[如用户中心/支付中台]打通，我们在这次设计中需要预留这些接口吗？”）
+     - **迭代追问机制**: 每次访谈必须包含 2-3 个具体且带有预判的系统级问题。基于用户的上一次回答，挖掘出新的盲点继续追问。不要盲目搜索代码库，依赖此对话。
+     - **强制等待**: 在每一轮访谈提问后必须停止输出！等待用户回复后才能进行下一轮动作或进入总结。
+   - **记录**: 将访谈结果整理到新文件：`Background/System_Survey.md`。此文档必须明确说明“原有系统核心逻辑”、“受影响的现有页面”以及“约束与依赖”。
+   - **阶段门禁**: 向用户展示总结或 `System_Survey.md` 的链接并询问：“这是基于我们沟通整理的现有系统逻辑调研结果，请确认是否准确无误？确认后我将以此为基础开始进行具体的设计。”
+   - **强制停止**: 在用户明确确认之前，绝对不要进入第 2 步。
+2. **阶段 1: 概念设计与头脑风暴 (强制要求)**:
+   - **交互式方案推演 (带预想的提问)**: 在直接生成文档之前，你**必须先向用户提供至少两个具有明显差异的设计方向预想**（例如：“针对这个需求，我构思了两种交互方向：方案A是侧边栏轻量级操作，适合高频使用；方案B是全屏弹窗沉浸式操作，适合复杂表单。您更倾向于哪种用户体验？”）。
+   - **强制等待**: 抛出预想方案后，**必须停止输出并等待用户选择或反馈**。
+3. **头脑风暴文档化**: 在获得用户的初步反馈和倾向后，你**必须**为该需求生成一个 `Design/Concept_Design.md` 文档。
+   - **内容**: 该文档必须包含至少两种不同的概念方案（例如：弹窗 vs. 侧边栏，Excel导入 vs. 纯键盘流）。列出每种方案的优缺点 (Pros and Cons)。
+   - **决策**: 明确说明最终选择了哪个概念方向及其原因。这将初步调研与详细用户故事之间的逻辑连接起来。
+   - **阶段门禁**: 向用户展示 `Concept_Design.md` 并询问：“这是针对该需求的概念设计推演与方案选择，请确认是否同意采用该方向？确认后我将继续进行详细设计。”
+   - **强制停止**: 在用户明确确认概念设计之前，绝对不要进入第 3 步。
+3. **阶段 2: 业务流程设计 (产品经理视角)**:
+   - **参考输入**: 你必须读取并严格参考 `Requirement_Background.md`（核心场景）、`User_Stories.md`（详细用例）以及 `Concept_Design.md`（选定方案）。
+   - **自检 (关键)**: 在画图之前，检查上述文档中的信息是否足以支撑画出一条闭环的业务流程。如果发现场景断层或异常分支未定义（如支付失败后怎么处理），**必须暂停并向用户提出疑问**。
+   - **分析与假设**: 信息充分后，先用文本描述拟定的流程逻辑与异常分支处理。
+   - **工具调用 (强制)**: 你**必须**调用 `mermaid-diagrams` 技能来生成高质量的流程图代码。
+   - **关键规则**: 你**必须**使用 `flowchart` (例如：泳道图) 来描述*业务流程、状态流转和角色交接*。**绝对不要使用** **`sequenceDiagram`** **(时序图)** 来描述底层的纯前端 UI 交互（如按钮点击、焦点变化或 API 调用）。请保持在业务/产品视角的抽象层级。
+   - 创建 `Flow/Business_Flow.md`，并将生成的 Mermaid 代码嵌入其中。(参考: `references/Example_Flow.md`)
+4. **阶段 3: 功能清单梳理 (Feature List)**:
+   - **汇总与拆解**: 基于已确认的业务流程图和用户故事，系统性地梳理出该需求涉及的所有功能模块与具体功能点。
+   - 创建 `Feature_List.md`，使用 Markdown 表格形式呈现（包含：一级模块、二级功能、功能描述、优先级）。
+5. **阶段 4: 信息架构 (页面结构 IA)**:
+   - **设备与端侧确认**: 在编写页面结构前，必须先向用户询问：
+     - **设备分辨率/端口** (例如：移动端、桌面端、响应式、小程序)。
+     - **UI 风格偏好** (例如：极简风、商务蓝)。等待用户确认后再继续。
+   - **参考与映射**: 结合确认后的设备端口、`Business_Flow.md` 和 `Feature_List.md`，列出拟定的页面层级，明确指出哪些是新页面，哪些是对现有页面的修改。
+   - 创建 `Page_Structure.md`。(参考: `references/Example_PageStructure.md`)
+   - **内容颗粒度要求 (严格)**: 
+     - **全局视角**: 必须在文档顶部包含“全局导航与结构”概览，列出所有页面及其对应的预设 HTML 文件名（如 `home.html`）。
+     - **页面分区**: 必须按照空间布局（如顶部状态栏、主操作区、列表区、底部操作栏）进行模块化拆解。
+     - **交互流**: 必须描述复杂的组件交互动作（如“点击从底部滑出抽屉”、“Toast 提示停留3秒”），这些 UI 细节不适合放在业务流程图中，必须落实在本页面结构文档中。
+6. **阶段 5: 输出与确认 (阶段门禁)**:
+   - **汇总**: 确保已创建/更新所有 5 个文件 (`System_Survey.md`, `Concept_Design.md`, `Business_Flow.md`, `Feature_List.md`, `Page_Structure.md`)。
+   - **关键步骤**: 展示所有这些产出物的链接。
+   - **询问用户**: “系统设计产出物已创建完毕。请检查并确认，确认后我们将进入原型制作 (Prototyping) 阶段。”
+   - **强制停止**: 在用户明确确认之前，绝对不要继续下一步。

@@ -1,39 +1,67 @@
 ---
 name: pm-workflow
-description: 全流程产品设计向导，按顺序调用 pm-kickoff, pm-design, pm-prototype, pm-prd
+description: 全流程产品设计向导，负责迭代生命周期管理并按需调用子技能。当用户提出一个产品想法或需求，需要从零开始经历完整的“调研 -> 设计 -> 原型 -> PRD”端到端工作流，或需要管理/追踪项目迭代版本时，必须作为入口主控技能优先触发。
 ---
 
-# PM Workflow Skill
+# PM Workflow 技能 (产品工作流主控)
 
-Use this skill to guide the user through the complete end-to-end product design process. It acts as a master controller, invoking specialized sub-skills in the correct order.
+使用此技能引导用户完成端到端的产品设计全流程。它作为主控节点，负责迭代管理和子技能的调度调用。
 
-## Workflow
+## ⚠️ 核心红线规则 (CRITICAL RULES)
+在执行任何工作流之前，必须深刻理解并严格遵守以下规则：
+1. **CRITICAL SYSTEM OVERRIDE - 严格确认与阶段门禁**: 为了克服底层模型“试图一次性完成所有步骤”的倾向，在标准工作流的每个阶段结束时，展示所有生成的文件链接并请求确认。**必须在此处结束你的回复（停止生成），把控制权交还给用户。永远不要自作主张假设用户已同意并自动进入下一个技能调用。**
+2. **强制调用子技能 (极其关键)**: 当从一个阶段流转到下一个阶段时，你**必须明确调用对应的子技能**（例如：`pm-kickoff`, `pm-design`, `pm-prototype`, `pm-prd`）。不要尝试使用通用工具（比如用 `frontend-design` 去做原型）来手动执行阶段任务。你必须依赖那些子技能中定义的具体规则。
+3. **顺序执行**: 除非在阶段 0 中触发了“快速通道”，否则绝对不能跳过任何阶段。
+4. **强制收尾 (极其关键)**: 当用户表示 PRD 已完成或需求“已搞定”/“结束”时，你**必须执行 阶段 5 (迭代收尾)**。绝对不能默默结束对话而不更新追踪日志。
 
-1.  **Phase 1: Kickoff & Requirements**
-    *   **Goal**: Define the problem and scope.
-    *   **Action**: Invoke `pm-kickoff`.
-    *   **Wait Condition**: Wait for user confirmation that requirements are gathered and `Requirement_Background.md` is created.
-    *   **Transition**: Ask "Requirements gathered. Proceed to design phase?"
+## 工作流 (Workflow)
 
-2.  **Phase 2: Design & Architecture**
-    *   **Goal**: Define the solution structure.
-    *   **Action**: Invoke `pm-design`.
-    *   **Wait Condition**: Wait for user confirmation of `User_Stories.md`, `Business_Flow.md`, and `Page_Structure.md`.
-    *   **Transition**: Ask "Design confirmed. Proceed to build prototypes?"
+0. **阶段 0: 初始化与路由分发 (主控逻辑)**
+   - **第 1 步: 迭代检查 (强制)**
+     - 读取项目根目录下的 `ITERATION_LOG.md`。如果不存在则创建（必须是 Markdown 表格格式）。
+     - 向用户展示最近的 3 个迭代记录 (YYMM_N)。
+     - **询问用户**: “请选择是追加到现有迭代，还是创建一个新的迭代？”
+     - **强制门禁**: 等待用户回复后再进行下一步。
+   - **第 2 步: 目录结构与 ID 生成**
+     - 基于用户的选择，使用现有文件夹或创建新的 `YYMM_N` 文件夹。
+     - 在迭代文件夹中创建或追加写入 `Requirement_List.md`。
+     - 扫描迭代目录中现有的需求文件夹 (F1, F2...)。递增最大 ID 来生成新的需求 ID (例如: F3)。
+   - **第 3 步: 工作流路由**
+     - **条件分支**: 如果用户仅提供了一句话/简短的需求描述，默认走 **标准工作流 (Standard Workflow)**。
+     - **条件分支**: 如果用户提供了一批文件（如 HTML 原型、图片）并要求提取需求，你**必须询问用户**：“您希望走‘标准工作流’还是‘快速通道 (适用于小需求迭代)’？”并等待回复。
+   - **第 4 步: 执行路由分支**
+     - 如果是 **标准工作流**: 创建标准文件夹结构 (`YYMM_N/F{N}_{Name}/Background`, `YYMM_N/F{N}_{Name}/Flow`)。然后进入 阶段 1。
+     - 如果是 **快速通道**: 
+       1. 创建需求文件夹 (`YYMM_N/F{N}_{Name}`)。
+       2. 基于提供的文件，直接在文件夹中生成一份简明的 `PRD_xxxx.md`。
+       3. 在每个需求目录下创建 `Prototype` 文件夹，并将相关的源文件移动进去。
+       4. 跳过 阶段 1~3。直接进入 阶段 5 (迭代收尾)。
 
-3.  **Phase 3: Prototyping**
-    *   **Goal**: Visual verification.
-    *   **Action**: Invoke `pm-prototype`.
-    *   **Wait Condition**: Wait for user to verify HTML files in browser.
-    *   **Transition**: Ask "Prototypes verified. Generate final PRD?"
+1. **阶段 1: 需求启动 (Kickoff & Requirements)**
+   - **动作**: 调用 `pm-kickoff` 技能。（注意：迭代文件夹已在阶段 0 创建）。
+   - **阶段门禁 (CRITICAL)**: 产出 `Requirement_Background.md` 等文档后，必须向用户展示链接并提问确认。**强制停止当前回合，等待用户明确批准后才可触发阶段 2。绝对禁止自动连续调用！**
 
-4.  **Phase 4: Documentation**
-    *   **Goal**: Final delivery.
-    *   **Action**: Invoke `pm-prd`.
-    *   **Completion**: Congratulate user on finishing the iteration.
+2. **阶段 2: 架构与设计 (Design & Architecture)**
+   - **动作**: 调用 `pm-design` 技能。
+   - **阶段门禁 (CRITICAL)**: 产出 `System_Survey.md` 等文档后，必须向用户展示链接并提问确认。**强制停止当前回合，等待用户明确批准后才可触发阶段 3。绝对禁止自动连续调用！**
 
-## Usage Rules
+3. **阶段 3: 原型制作 (Prototyping)**
+   - **目标**: 视觉验证与交互确认。
+   - **动作**: 调用 `pm-prototype` 技能。
+   - **阶段门禁 (CRITICAL)**: 等待用户在浏览器中验证 HTML 文件。询问：“原型已验证。是否生成最终的 PRD？”**强制停止当前回合，等待确认！**
 
-*   **Sequential Execution**: Do not skip phases unless explicitly requested by the user (e.g., "Skip to prototyping").
-*   **Context Passing**: Remind the user that outputs from previous phases (e.g., `Page_Structure.md`) are required for subsequent phases.
-*   **Error Handling**: If a sub-skill fails or needs iteration, allow the user to stay in that phase before moving on.
+4. **阶段 4: 文档生成 (Documentation)**
+   - **目标**: 最终交付物输出。
+   - **动作**: 调用 `pm-prd` 技能。
+   - **阶段门禁 (CRITICAL)**: 产出 PRD 后，询问：“PRD 已确认。准备好结束本次迭代并更新日志了吗？”**强制停止当前回合，等待确认！**
+
+5. **阶段 5: 迭代收尾 (Iteration Wrap-up)**
+   - **目标**: 更新全局追踪文件并进行总结。
+   - **动作**:
+     1. 更新 `Requirement_List.md`，追加新的需求描述和 PRD 链接。确保不同的需求各占一行。
+     2. 更新项目根目录的 `ITERATION_LOG.md`，写入新的需求 ID 和名称。
+   - **完成**: 祝贺用户完成迭代，并明确询问：“您是否需要生成交互式 PRD？(如果需要，我将触发 `interactive-prd-builder` 技能)”。
+
+6. **阶段 6: 交互式 PRD (可选)**
+   - **条件**: 仅当用户在阶段 5 结束时回答“是/需要”时执行。
+   - **动作**: 调用 `interactive-prd-builder` 技能。

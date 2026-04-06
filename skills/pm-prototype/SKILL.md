@@ -1,31 +1,61 @@
 ---
 name: pm-prototype
-description: 生成高保真 HTML 原型
+description: 生成高保真 HTML 原型。当需求设计完成进入原型制作阶段（通常由 pm-workflow 的阶段 3 触发），或者用户需要基于 Page\_Structure.md 的结构通过前端代码生成可交互的原型界面以供验证时使用此技能。
 ---
 
-# PM Prototype Skill
+***
 
-Use this skill to generate HTML prototypes based on the page structure.
+name: pm-prototype
+description: 生成高保真 HTML 原型。当需求设计完成进入原型制作阶段（通常由 pm-workflow 的阶段 3 触发），或者用户需要基于 Page\_Structure.md 的结构通过前端代码生成可交互的原型界面以供验证时使用此技能。
+-------------------------------------------------------------------------------------------------------------------------------
 
-## Workflow
+# PM Prototype 技能 (原型设计)
 
-1.  **Preparation**:
-    *   Read `Page_Structure.md`.
-    *   Ask user for:
-        *   **Device Resolution** (e.g., Mobile, Desktop).
-        *   **UI Style** (e.g., Minimalist, Business Blue).
-    *   **Analysis & Hypothesis (CRITICAL)**:
-        *   **Self-Check**: Do I know the interaction details (e.g., popup triggers, error states)?
-        *   **Hypothesis**: Describe the proposed UI layout and interaction flow for key pages.
-        *   **Action**: Ask user: "I plan to build the [Home Page] with [Layout X] and [Interaction Y]. Is this what you expect?"
-        *   **Iterate**: Gather feedback until user confirms.
+使用此技能根据页面结构生成高保真的 HTML 原型。
 
-2.  **Generation**:
-    *   Create `Prototypes/` folder.
-    *   Generate HTML files for each page defined in IA.
-    *   Include CSS/JS (can be inline or separate).
-    *   **Requirement**: Prototypes must be interactive (links working, buttons clickable).
-    *   **Correction**: If user points out UI issues, fix them immediately.
+## 工作流 (Workflow)
 
-3.  **Verification**:
-    *   Ask user to open HTML files and verify.
+1. **准备阶段 (Preparation)**:
+   - 读取 `Page_Structure.md`。
+   - 读取当前需求目录下的 `Background/Requirement_Background.md` 以及 `Background/User_Stories.md`。
+   - **分析**: 如果还缺少信息，可以读取更多文件或者直接采访用户，直到信息充足后，描述关键页面拟定的 UI 布局和交互流程。
+2. **视觉风格定义与样例确认 (核心前置阶段)**:
+   - **设计思考 (Design Thinking)**: 在推荐风格前，必须从四个维度审视当前产品：
+     - **Purpose**: 这个界面解决什么问题？用户是谁？
+     - **Tone**: 调性必须走极端！(如：brutally minimal 极致极简, maximalist chaos 繁复主义, retro-futuristic 复古未来, editorial 杂志排版, brutalist 粗野主义等)。
+     - **Constraints**: 终端与框架的物理限制。
+     - **Differentiation**: 什么元素能让它过目不忘？
+   - **风格推荐**: 基于上述思考，为每个端口提供 3-10 个视觉风格及推荐理由让用户选择。
+     - **🚨反 AI 审美红线 (Anti-AI Slop Rules)**: **绝对禁止**推荐平庸的“现代科技蓝”、“通用后台灰”、“极简扁平”等千篇一律的废话风格。
+     - **推荐格式要求**: 推荐的每个风格必须具有强烈的个性，并给出具体的“视觉抓手”预判（例如：推荐字体、色彩倾向、空间排版特征）。
+   - **样例页面与尺寸确认**: 用户按端口选择视觉风格后，询问用户希望拿哪个页面作为样例去进行生成（每个端口选择一个），并采访用户各个端口的尺寸要求。
+   - **生成样例**: 待用户确认页面和尺寸后，按照用户选择的视觉风格去生成样例页面。
+   - **验证与迭代循环**: 和用户确认样例页面是否符合需求。
+     - **如果不符合**：必须采访用户的感受，然后按照用户的感受继续推荐新的视觉风格让用户选择去生成样例页面。
+     - **强制循环**：只要用户不确认，就必须一直循环此步骤（采访感受 -> 推荐新风格 -> 重新生成样例）。
+   - **创建设计倾向指南**: 直到用户确认了每个端口的视觉风格后，按照这个确认的过程去创建一个“设计倾向指南”文件（如 `Design/Design_Trend_Guide.md`）。**要求**：该指南必须是一份“写给 frontend-design 技能的作战指令”，里面必须包含对排版（Typography）、色彩（Color & Theme）、空间组合（Spatial Composition）的严苛要求，彻底杜绝后续生成的塑料感。
+3. **生成阶段 (Generation)**:
+   - 创建 `Prototypes/` 文件夹。
+   - **策略**: 调用 `frontend-design` 技能，并严格依据前一阶段生成的“设计倾向指南”来生成高质量的 HTML/CSS/JS。
+   - **原型规范**:
+     1. 产出 **单文件 HTML 原型**，包含完整的 CSS 样式。
+     2. 强制使用 **Tailwind CSS**。
+     3. 必须包含关键的交互状态。通过简单的原生 JavaScript 或 URL Hash (`#page1`, `#modal_login`, `#drawer_menu` 等) 来实现：
+        - **页面间的完整切换**。
+        - **同一页面的不同状态切换**（如：空状态、加载中、数据展示态）。
+        - **覆盖层交互**（如：打开弹窗 Modal、滑出抽屉 Drawer、Toast 提示等）。
+   - **要求**: 原型必须是可交互的（链接可用、按钮可点击），视觉表现必须遵循“设计倾向指南”，并且必须与 `Page_Structure.md` 的细节保持一致。
+4. **原型审查与迭代 (核心迭代循环)**:
+   - **汇总**: 确保所有 HTML 文件均已在 `Prototypes/` 目录中创建。
+   - **关键步骤**: 展示所有原型文件的链接 (例如：`Prototypes/home.html`)。
+   - **询问反馈**: 引导用户在浏览器中打开它们以验证交互，并询问：“原型已生成。请查看界面与交互，是否有需要调整的功能、逻辑或页面流转？”
+   - **🛑 强制暂停**: 在此处必须停止输出！等待用户反馈修改意见。
+   - **迭代修改**: 根据用户反馈，仅修改 HTML 原型文件代码，直至用户完全满意。
+5. **逆向同步与严格一致性校对 (Reverse Sync & Consistency Audit)**:
+   - **确认结束**: 当用户对原型表示“完全满意”、“确认无误”时，结束原型迭代审查阶段。
+   - **🚨 关键规则（强制双向比对与同步）**: 在结束原型迭代后，你**必须**使用文件读取工具重新读取 `Prototypes/` 目录下的所有 HTML 源码。
+     - **核对清单**: 将 HTML 中的 DOM 结构（特别是独立的页面、弹窗、抽屉、键盘、卡片等）与原有的 `Page_Structure.md` 进行逐一核对。
+     - **增删改同步**: 如果在原型迭代过程中**新增**了某个弹窗、**删除**了某个按钮，或者**修改**了某个交互形式（例如从列表变成了轮播），你必须将这些变更逆向更新回 `Page_Structure.md`，确保底层设计文档与最终代码 100% 结构一致。
+   - **一致性报告输出**: 同步完成后，你必须向用户输出一份简短的一致性报告（例如：“我已完成逆向同步，在 `Page_Structure.md` 中补充了 X 弹窗，移除了 Y 按钮，当前文档与原型已 100% 对齐”）。
+   - **询问用户**: “原型已定稿，且底层设计文档（页面结构及切片路径）已根据最终原型同步更新完毕。我们可以进入下一阶段（PRD 编写）了吗？”
+   - **强制停止**: 在用户明确确认之前，绝对不要继续下一步。

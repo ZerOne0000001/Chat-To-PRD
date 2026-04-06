@@ -1,38 +1,49 @@
 ---
 name: pm-prd
-description: 生成标准 PRD 文档
+description: 生成标准 PRD 文档。当原型设计验证完成（通常由 pm-workflow 的阶段 4 触发），或者需要综合前期所有产出物（背景、流程、原型等）输出一份格式严谨的综合性产品需求文档时使用此技能。
 ---
 
-# PM PRD Skill
+# PM PRD 技能 (生成 PRD 文档)
 
-Use this skill to generate the final Product Requirement Document.
+使用此技能生成最终的产品需求文档 (PRD)。
 
-## Workflow
+## 核心红线与规范 (CRITICAL RULES)
 
-1.  **Preparation**:
-    *   Read all previous artifacts: `Requirement_Background.md`, `User_Stories.md`, `Business_Flow*.md`, `Page_Structure.md`.
-    *   Read `Prototypes/` file list (to link them).
+**在执行任何起草动作前，你必须严格遵守以下红线约束，不可偏离：**
 
-2.  **Drafting**:
-    *   **Analysis & Hypothesis**:
-        *   **Self-Check**: Are there any logic gaps between the design and prototypes?
-        *   **Hypothesis**: Propose the PRD Directory Structure and Key Logic Points (especially Data Dictionary definitions).
-        *   **Action**: Ask user: "I plan to structure the PRD as follows... and define [Field X] as [Definition Y]. Any changes?"
-    *   Create `PRD_ProjectName_v1.0.md`.
-    *   **Structure**:
-        1.  Document Info (Revision History).
-        2.  Project Overview (Background, Goals, Scope).
-        3.  User Roles & Stories (Link to files).
-        4.  Business Process (Link to files).
-        5.  Page Structure & Flow (Link to files, Mermaid diagram).
-        6.  **Data Dictionary** (Glossary).
-        7.  **Functional Specifications** (Detailed logic per page).
-        8.  Non-functional Requirements.
+1. **结构不可篡改**：你**必须**使用文件读取工具读取并严格遵循 `references/PRD_Example.md` 中定义的结构。**绝对禁止增、删、改 6 大顶级章节的顺序和标题**。
+2. **总-分拆解结构**：第 6 章“功能模块与页面细节”必须采用“总-分”结构（页面总览 -> 区域/弹窗拆解）。
+3. **无死角覆盖**：**强制要求**对齐原型文件中的每一个交互组件、每一张卡片、每一个弹窗（如键盘、列表、抽屉、二维码等），进行事无巨细的说明，绝不允许遗漏任何用户可见的元素。具体的好坏案例参考请阅读 `references/PRD_Component_Standard.md`。
+4. **全中文产品视角**：在编写名词字典与实体关系图（ER Diagram）时，必须从产品经理的视角出发，**严格使用中文命名实体、字段和属性**（如“员工ID”、“排班日期”），**绝对禁止使用英文开发视角的变量名**（如 `emp_id`、`is_rest`）。
 
-3.  **Style Guidelines**:
-    *   Use "Product Manager" language (e.g., "Source: Admin Config", not "API: GET /config").
-    *   Include relative links to all artifacts.
-    *   **Reference**: See `references/PRD_Example.md` for the expected format and tone.
+## 工作流 (Workflow)
 
-4.  **Review**:
-    *   Present the PRD to the user for final review.
+1.  **准备阶段 (Preparation)**:
+    *   读取之前的所有产出物：`Requirement_Background.md`, `Concept_Design.md`, `User_Stories.md`, `Business_Flow*.md`, `Page_Structure.md`。
+    *   读取 `Prototypes/` 目录下的文件列表，确保你拥有准确的 HTML 文件名。
+
+2.  **起草阶段 (Drafting)**:
+    *   **分析与假设 (Analysis & Hypothesis)**:
+        *   **自检**: 设计与原型之间是否存在任何逻辑漏洞？是否涵盖了所有原型页面、弹窗和交互状态？
+        *   **假设**: 提出拟定的 PRD 目录结构和关键逻辑点（特别是数据字典、ER 关系和排序/展示规则）。
+        *   **动作**: 询问用户：“我计划按如下结构编写 PRD... 并将 [字段 X] 定义为 [定义 Y]。您看有什么需要调整的吗？”
+    *   创建 `PRD_项目名称_迭代名称.md` (例如：`PRD_MobileCashier_2603_1.md`)。
+    *   严格按照顶部的“核心红线与规范”执行，将内容填充进标准模板中。
+
+3.  **格式与文风指南 (Style Guidelines)**:
+    *   使用“产品经理”的专业术语。用词精准，避免模棱两可的表达。
+    *   包含指向所有其他产出物（如流程图、原型等）的相对链接。
+    *   确保所有 Markdown 表格格式正确、对齐美观。
+
+4.  **强制自我审查阶段 (Mandatory Self-Audit)**:
+    *   PRD 起草完成后，**绝对禁止直接向用户交差**。你必须先在当前回合内，对照核心规范进行一次严格的自我逻辑审查：
+        *   [ ] 是否包含了不多不少整整 6 大顶级章节？
+        *   [ ] 第 6 章是否严格遵守了“总-分”拆解结构？
+        *   [ ] 是否通过穷举原型文件，检查确认没有任何一个弹窗、键盘、侧边栏或悬浮按钮被遗漏？
+    *   **打分与修改**：如果审查发现任何缺失，你必须直接覆盖修改原文档，直到完全达标。
+    
+5.  **输出与确认 (阶段门禁) (Output & Confirmation)**:
+    *   **CRITICAL SYSTEM OVERRIDE**: 必须克服“连续行动”的底层系统倾向。
+    *   **交付动作**：向用户展示生成的 PRD 文件链接，并附带一句：“我已经根据 PRD 标准模板完成了自检审查，确认无章节遗漏”。
+    *   **询问用户**: “请检查文档的结构和内容。确认无误后，我们将结束本次迭代？”
+    *   **强制停止**: 在向用户提问后，**必须立即结束当前工具调用和响应回合**，等待用户的明确回复（如“同意”、“确认”）。在用户明确确认之前，绝对不要自动进入下一阶段或擅自结束任务。

@@ -1,43 +1,39 @@
 ---
 name: pm-kickoff
-description: 启动新需求迭代，进行需求调研与文件夹初始化
+description: 启动新需求迭代，进行需求调研与背景分析。当用户提供初步需求描述、启动新项目迭代（通常由 pm-workflow 的阶段 1 触发），或需要明确核心场景并输出 Requirement_Background.md 时使用此技能。
 ---
 
-# PM Kickoff Skill
+# PM Kickoff 技能 (需求启动)
 
-Use this skill to initiate a new product requirement iteration and gather initial requirements.
+使用此技能收集初始需求并建立产品背景。
+**注意:** 目录初始化和迭代 ID 生成由父级 `pm-workflow` 处理。此技能假设工作目录 (`YYMM_N/F{N}_{Name}/Background`) 已经存在。
 
-## Workflow
+## 工作流 (Workflow)
 
-1.  **Check Iteration Log**:
-    *   Read `ITERATION_LOG.md` in project root.
-    *   If not exists, create it.
-    *   Identify latest iteration (YYMM_N).
-    *   Ask user: "Append to current iteration or start new?"
+1.  **需求分析与假设 (关键)**:
+    *   **建立假设与评估**: 在提问之前，**必须**基于需求名称或用户的初步输入，对以下关键维度进行评估，并向用户展示哪些是清晰的，哪些是缺失的：
+        1. **背景/痛点**：为什么要做？现状有什么问题？
+        2. **业务目标**：做完后想达到什么效果？
+        3. **用户画像与场景**：目标用户是谁（如年龄、职业、痛点等画像特征）？他们会在什么具体时间、地点或情境下使用该功能？
+        4. **核心流程/逻辑**：你初步假设的核心业务逻辑是怎样的？
+    *   **深度追问与多轮确认 (强制)**:
+        *   向用户展示评估结果与初步假设。
+        *   **不要急于总结**，采用开放式、启发式的提问挖掘盲点。每次追问 2-4 个问题。
+        *   基于用户的回答循环追问，直到目标用户、核心场景和业务逻辑完全清晰，且用户明确表示没有补充。
+        *   **强制暂停**: 在每一轮提问后必须停止输出，等待用户回复后才能进行下一轮动作。
 
-2.  **Create Iteration Structure**:
-    *   Create folder `YYMM_N` (e.g., `2603_1`).
-    *   Create `Requirement_List.md` inside iteration folder.
-    *   Ask for Requirement Name/ID (e.g., F1).
-    *   Create requirement folder `YYMM_N/F1_Name`.
-    *   Create subfolders: `Background`, `Flow`.
+2.  **生成用户故事与旅程地图 (产出与补充)**:
+    *   基于上述明确的背景、画像和核心场景，进一步拆解和梳理细节：
+        *   生成 `Background/User_Stories.md`: 详细的卡片格式，包含验收标准。(参考: `references/Example_Stories.md`)
+        *   生成 `Flow/User_Journey_Map.md`: 表格格式，包含“阶段、系统行为、触点和机会点”。(参考: `references/Example_Journey.md`)
+    *   **注意**: 这一步是在用户确认核心场景没有补充后，由 AI 主动生成的深度结构化文档。
 
-3.  **Requirement Analysis & Hypothesis (CRITICAL)**:
-    *   **Self-Check**: Do I have enough info about Persona, Scenario, and Goals?
-    *   **Hypothesis**: Before asking questions, ALWAYS propose a preliminary **Core Flow** or **Business Logic** based on the requirement name.
-    *   **Action**: Present the hypothesis to the user: "Here is my understanding/hypothesis of the requirement... Is this correct?"
-    *   **Iterate**: If user corrects, update hypothesis and ask follow-up questions until info is sufficient.
-
-4.  **Conduct Requirement Interview**:
-    *   Ask user if they need analysis assistance.
-    *   If yes, conduct multi-round interview covering:
-        *   **Target User (Persona)**: Who is this for?
-        *   **Usage Scenario**: When/Where is it used?
-        *   **Core Flow**: What is the main action?
-        *   **Goals**: What is the success metric?
-    *   Propose hypotheses and ask for confirmation.
-    *   **CRITICAL**: Do not proceed to solution design until requirements are clear.
-
-4.  **Output**:
-    *   Update `Requirement_List.md`.
-    *   **Reference**: See `references/Example_Background.md` for format.
+3.  **输出与确认 (阶段门禁)**:
+    *   确保已创建并填充以下三个文件：`Requirement_Background.md`、`User_Stories.md`、`User_Journey_Map.md`。
+    *   **内容与格式要求 (严格)**: 
+        *   `Requirement_Background.md` 必须包含业务目标与背景。
+        *   必须使用**表格形式**详细描述“用户画像 (User Personas)”（包含：角色、特征、核心痛点、行为限制/偏好）。
+        *   必须使用**表格形式**详细描述“核心场景 (Core Scenarios)”（包含：场景名称、关联用户画像、触发条件与环境、当前痛点、核心动作、期望结果、潜在异常）。
+    *   **参考**: 必须严格参考 `references/Example_Background.md` 中的表格结构。
+    *   **关键步骤**: 展示这三个文件的链接并询问用户：“需求背景、用户故事及旅程地图已创建。请确认无误后，我们将进入系统架构与设计 (Design) 阶段。”
+    *   **强制停止**: 在用户明确确认之前，绝对不要继续下一步。

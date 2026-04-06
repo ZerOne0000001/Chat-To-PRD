@@ -1,0 +1,164 @@
+
+/* prototype_nav.css */
+#prototype-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 320px;
+    background: #1e1e1e;
+    color: #e0e0e0;
+    z-index: 99999;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(-320px);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    border-right: 1px solid #333;
+}
+
+#prototype-nav.expanded {
+    transform: translateX(0);
+}
+
+#prototype-nav-toggle {
+    position: absolute;
+    top: 50%;
+    right: -32px;
+    width: 32px;
+    height: 60px;
+    background: #1e1e1e;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 4px 0 8px rgba(0,0,0,0.2);
+    border: 1px solid #333;
+    border-left: none;
+    font-size: 20px;
+}
+
+#prototype-nav-header {
+    padding: 20px;
+    background: #252526;
+    border-bottom: 1px solid #333;
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#prototype-nav-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+/* Scrollbar styling */
+#prototype-nav-content::-webkit-scrollbar {
+    width: 8px;
+}
+#prototype-nav-content::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+#prototype-nav-content::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 4px;
+}
+
+.nav-tree {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-item {
+    margin-bottom: 2px;
+}
+
+.nav-item-content {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.1s;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.nav-item-content:hover {
+    background: #2a2d2e;
+}
+
+.nav-item-content.active {
+    background: #37373d;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.nav-item-content.current-page {
+    color: #4fc1ff;
+}
+
+.nav-icon {
+    margin-right: 8px;
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+    color: #858585;
+}
+
+.nav-toggle {
+    margin-right: 4px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+}
+.nav-toggle:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.nav-children {
+    margin-left: 20px;
+    border-left: 1px solid #333;
+    display: none;
+}
+
+.nav-children.expanded {
+    display: block;
+}
+
+/* Specific styling for leaf nodes (states/modals) */
+.nav-item.leaf .nav-item-content {
+    font-size: 13px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    color: #cccccc;
+}
+
+.nav-item.leaf .nav-item-content:hover {
+    color: #ffffff;
+}
+
+.nav-item.leaf .nav-item-content.active {
+    background: #094771;
+    color: #ffffff;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    margin-left: auto;
+    background: #333;
+    color: #aaa;
+}
