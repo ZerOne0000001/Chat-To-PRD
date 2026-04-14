@@ -27,6 +27,8 @@ description: 自动化交互式 PRD（产品需求文档）生成工作流。该
   - **移动端原型**：强制设定 iframe 的容器宽度和高度（如 `width: 375px; height: 830px;`），需包裹一层精致的 CSS 手机外壳（带圆角和刘海），并可通过 CSS `transform: scale(0.8)` 等方式进行缩放以适应屏幕。
   - **Web端/后台原型**：**绝对禁止使用 `width: 100%` 响应式自适应**（会导致内部宽表格撑破外层 Flex 布局，即 Flex Blowout）。必须使用固定宽度与缩放模式：外层容器固定宽度（如 `width: 800px; height: 100%;`），内部 iframe 设置为设计稿基准宽度（如 `1440px`）并应用 `transform: scale(calc(800 / 1440))` 且 `transform-origin: top left;`。**关键**：内部 iframe 的高度必须通过 `calc(100% * (1440 / 800))` 进行反向补偿计算，否则缩放后下方会留出大片空白。同时外层 Flex 容器必须添加 `min-w-0`（`min-width: 0`）属性彻底防撑破。
   - **通用 iframe 样式**：必须在 iframe HTML 标签级别直接绑定 `onload="hideIframeScrollbar(this)"` 拦截函数，在页面初次渲染时第一时间注入 CSS 隐藏内部原生滚动条（`::-webkit-scrollbar { display: none !important; }`），防止初次加载时短暂露出滚动条轨道。
+- **PRD 内容区底部补偿**：
+  - 为了彻底解决“文章末尾内容过短导致点击最后几个目录时标题无法滚动到顶部”进而导致滚动侦听失效和 iframe 联动死锁的问题，**必须在中间 PRD 内容区的最末尾追加一屏高度的视觉补偿区**（例如设置包裹容器的 `padding-bottom: 100vh` 或在文档末尾插入 `<div class="h-screen"></div>`），确保即使是最后一行内容也能被滚动到浏览器视口的最顶端。
 
 ### 3. 深度路由与 Iframe 状态同步 (防死锁模式)
 为了实现点击目录联动 iframe 内部状态（如弹出弹窗、切换 Tab），必须严格遵循以下同步模式：
