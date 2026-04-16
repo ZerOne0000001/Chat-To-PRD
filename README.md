@@ -139,17 +139,6 @@ skills/
 
 ## 📝 版本变动记录 (Changelog)
 
-### v1.1.0 (近期更新)
-* **核心工作流重构 (pm-workflow)**: 
-  * 引入强约束的移交协议 (Handshake Protocol) 确保技能精准路由。
-  * 修复了“快速通道”批量需求创建的目录顺序逻辑，并强制收尾时跳过交互 PRD 询问。
-  * 增加迭代日志表头模板 (`Log_Format.md`) 规范输出格式。
-* **交互式 PRD 增强 (interactive-prd-builder)**:
-  * 彻底剥离旧版 assets，强制生成基于 Tailwind CSS 的单文件 HTML。
-  * 新增 **PRD 内容区底部视觉补偿** 规则，彻底解决短章节无法滚动到顶部触发联动的问题。
-  * 抽取 Mermaid 四重防御机制到独立参考文件，降低主文件复杂度。
-* **原型与设计优化 (pm-prototype & pm-design)**:
-  * 去除 `pm-design` 阶段对页面具体位置和 UI 风格的过早定义，为原型阶段保留创作空间。
-  * 强化 `pm-prototype` 逆向审计流程，引入 `Design_Trend_Guide` 强约束模板，并明确原型文件夹生成在需求根目录下。
-* **合规与清理**: 严格执行 `skill-creator` 规范，清理了冗余的 `LICENSE.txt`、`README.md` 等非必要文件，杜绝幽灵资源。
+完整的版本演进历史与详细更新内容，请参阅 `changelogs` 目录：
+- [v1.1.0 近期更新 - 核心工作流重构与交互式 PRD 增强](changelogs/v1.1.0.md)
 
