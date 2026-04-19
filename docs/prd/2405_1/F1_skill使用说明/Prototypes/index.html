@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>演示大纲 | Chat-To-PRD (pm-workflow)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@200;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            padding-top: 180px; /* Space for the new top nav, matches nav height */
+        }
+
+        /* Subtle cinematic glowing orb in background */
+        .glow-bg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 80vw;
+            height: 80vw;
+            max-width: 1000px;
+            max-height: 1000px;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(120, 119, 198, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+            z-index: -1;
+            pointer-events: none;
+            transition: background 0.8s ease;
+        }
+
+        .glass-card {
+            background: rgba(25, 25, 25, 0.4);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- Tree Navigation Styles --- */
+        .tree-nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 180px; /* Fixed height to ensure it doesn't overlap content */
+            z-index: 50;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 24px 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        #global-nav-container {
+            position: relative;
+            min-width: max-content;
+            padding: 0 40px;
+            height: 100%; /* Fill the fixed container height */
+            display: flex;
+            align-items: center; /* Vertically center the tree */
+            justify-content: center;
+        }
+
+        #tree-lines-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #tree-nodes {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 48px; /* Space between columns */
+        }
+
+        .tree-col {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .tree-row {
+            display: flex;
+            align-items: center;
+            gap: 48px;
+            position: relative;
+        }
+
+        .tree-node {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* Elastic scale */
+            opacity: 0.6;
+            padding: 8px 20px;
+            border-radius: 24px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 rgba(255, 255, 255, 0);
+        }
+
+        .tree-node:hover {
+            opacity: 0.9;
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        @keyframes nodePulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+
+        .tree-node.active {
+            opacity: 1;
+            background-color: #fff;
+            border-color: #fff;
+            color: #000;
+            animation: nodePulse 2s infinite cubic-bezier(0.66, 0, 0, 1); /* Pulse effect */
+            transform: scale(1.1); /* Elastic Q-bounce */
+        }
+
+        .tree-node.completed {
+            opacity: 0.9;
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1);
+        }
+
+        /* SVG Line Animations */
+        path.tree-link {
+            transition: stroke 0.5s ease, filter 0.5s ease, stroke-dashoffset 0.8s ease-in-out;
+        }
+
+        .node-label {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .tree-node.active .node-label {
+            color: #000;
+        }
+
+        .branch-label {
+            position: absolute;
+            left: -40px;
+            font-size: 11px;
+            opacity: 0.4;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: opacity 0.3s;
+            font-weight: bold;
+        }
+        
+        .tree-row.active .branch-label {
+            opacity: 0.8;
+            color: #fff;
+        }
+
+        /* --- Rest of existing styles --- */
+
+        .text-gradient {
+            background: linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0.5) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-pill {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .nav-pill:hover {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .nav-pill.active {
+            background: rgba(255, 255, 255, 1);
+            color: #000;
+            box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
+        }
+
+        .file-item {
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .file-item:last-child { border-bottom: none; }
+        .file-item:hover {
+            transform: translateX(8px);
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+        }
+
+        /* Smooth fade transition for content */
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(20px) scale(0.98);
+        }
+        .fade-enter-active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Scenario Buttons */
+        .scenario-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            transition: all 0.4s ease;
+            cursor: pointer;
+        }
+        .scenario-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-4px);
+        }
+        .scenario-btn.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center px-4 sm:px-8 lg:px-24 pb-12 pt-[200px] relative">
+
+    <div class="glow-bg" id="glow-bg"></div>
+
+    <!-- Global Step Navigator (Tree Branching) -->
+    <div class="tree-nav-container">
+        <div id="global-nav-container">
+            <svg id="tree-lines-svg"></svg>
+            <div id="tree-nodes">
+                <!-- Col 1: Prep -->
+                <div class="tree-col justify-center">
+                    <div id="node-prep" class="tree-node" onclick="goToStep('prep', 'standard')">
+                        <span class="node-label">00. 准备</span>
+                    </div>
+                </div>
+
+                <!-- Col 2: Init -->
+                <div class="tree-col justify-center">
+                    <div id="node-init" class="tree-node" onclick="goToStep('init', 'standard')">
+                        <span class="node-label">0. 选择</span>
+                    </div>
+                </div>
+
+                <!-- Col 3: Branches -->
+                <div class="tree-col">
+                    <!-- Standard Row -->
+                    <div id="row-standard" class="tree-row">
+                        <span class="branch-label">标准</span>
+                        <div id="node-s1" class="tree-node" onclick="goToStep(1, 'standard')">
+                            <span class="node-label">1. 背景</span>
+                        </div>
+                        <div id="node-s2" class="tree-node" onclick="goToStep(2, 'standard')">
+                            <span class="node-label">2. 架构</span>
+                        </div>
+                        <div id="node-s3" class="tree-node" onclick="goToStep(3, 'standard')">
+                            <span class="node-label">3. 原型</span>
+                        </div>
+                        <div id="node-s4" class="tree-node" onclick="goToStep(4, 'standard')">
+                            <span class="node-label">4. 文档</span>
+                        </div>
+                        <div id="node-s5" class="tree-node" onclick="goToStep(5, 'standard')">
+                            <span class="node-label">5. 收尾</span>
+                        </div>
+                        <div id="node-s6" class="tree-node" onclick="goToStep(6, 'standard')">
+                            <span class="node-label">6. 交互</span>
+                        </div>
+                    </div>
+
+                    <!-- Fast Track Row -->
+                    <div id="row-fastTrack" class="tree-row">
+                        <span class="branch-label">快速</span>
+                        <div id="node-f4" class="tree-node" onclick="goToStep(4, 'fastTrack')">
+                            <span class="node-label">4. 文档</span>
+                        </div>
+                        <div id="node-f5" class="tree-node" onclick="goToStep(5, 'fastTrack')">
+                            <span class="node-label">5. 收尾</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Presentation Card -->
+    <main class="w-full max-w-6xl glass-card overflow-hidden flex flex-col md:flex-row min-h-[60vh] fade-enter-active my-12" id="main-content">
+        <!-- Rendered via JS -->
+    </main>
+
+    <script>
+        // --- Data Structure ---
+        const workflows = {
+            standard: [
+                { id: 'prep', label: "00. 准备工作", title: "前置准备", desc: "", artifacts: [], icon: "doc" },
+                { id: 'init', label: "0. 场景选择", title: "阶段 0: 初始化", desc: "展示技能基础信息，并提供分支路线的选择。", artifacts: [], icon: "play" },
+                { id: 1, label: "1. 背景", title: "背景 & 深度调研", desc: "系统执行深度访谈协议，在架构设计之前，明确业务目标、用户画像与核心场景。", artifacts: [
+                    { name: "Requirement_Background.md", desc: "定义业务目标、用户画像表格与核心场景清单。", icon: "doc" },
+                    { name: "User_Stories.md", desc: "包含验收标准的史诗(Epic)与用例拆解。", icon: "list" },
+                    { name: "User_Journey_Map.md", desc: "阶段行为、痛点、触点及机会点分析图。", icon: "map" }
+                ], icon: "search" },
+                { id: 2, label: "2. 架构设计", title: "系统架构 & 概念设计", desc: "根据前期的调研背景，推导并设计系统级交互范式与模块化的页面结构。", artifacts: [
+                    { name: "System_Survey.md", desc: "现有系统环境、约束条件及技术可行性评估。", icon: "server" },
+                    { name: "Concept_Design.md", desc: "核心概念隐喻、交互范式(如单页 vs 步进)。", icon: "bulb" },
+                    { name: "Business_Flow.md", desc: "主流程与异常分支的 Mermaid 流程图。", icon: "flow" },
+                    { name: "Page_Structure.md", desc: "页面信息架构、组件树及区块功能定义。", icon: "layout" }
+                ], icon: "layout" },
+                { id: 3, label: "3. 原型制作", title: "高保真 原型制作", desc: "根据页面结构定义，生成极具视觉冲击力的高保真单页面 HTML 原型，并执行逆向审计校对。", artifacts: [
+                    { name: "Prototypes/*.html", desc: "单文件、包含完整样式与状态的 HTML 原型文件。", icon: "code" },
+                    { name: "Design_Trend_Guide.md", desc: "极端化视觉风格的约束与 UI 指导手册。", icon: "palette" }
+                ], icon: "eye" },
+                { id: 4, label: "4. 文档生成", title: "综合 PRD 文档生成", desc: "整合前期所有的分析、流程、结构与原型反馈，输出格式严谨、结构清晰的综合性产品需求文档。", artifacts: [
+                    { name: "PRD.md", desc: "包含背景、流程、页面、用例与非功能性需求的完整文档。", icon: "book" }
+                ], icon: "doc" },
+                { id: 5, label: "5. 迭代收尾", title: "任务收尾 & 版本控制", desc: "完成本次迭代的所有设计工作，更新项目日志并记录变更历史。", artifacts: [
+                    { name: "ITERATION_LOG.md", desc: "记录本次迭代的过程、决策与核心结论。", icon: "clock" },
+                    { name: "CHANGELOG.md", desc: "面向用户的版本变更说明与特性列表。", icon: "tag" }
+                ], icon: "check" },
+                { id: 6, label: "6. 交互 PRD", title: "交互式 PRD 组装", desc: "将 PRD 文档与 HTML 原型深度拼装，生成支持多状态同步、左右联动的最终演示页面。", artifacts: [
+                    { name: "Interactive_PRD.html", desc: "文档+原型联动的交互式网页终产物。", icon: "sparkles" }
+                ], icon: "sparkles" }
+            ],
+            fastTrack: [
+                { id: 'prep', label: "00. 准备工作", title: "前置准备", desc: "", artifacts: [], icon: "doc" },
+                { id: 'init', label: "0. 场景选择", title: "阶段 0: 初始化", desc: "展示技能基础信息，并提供分支路线的选择。", artifacts: [], icon: "play" },
+                { id: 4, label: "4. 文档生成", title: "快速 文档生成", desc: "基于已有资料或简单对话，跳过中间件直接快速输出综合 PRD 文档。", artifacts: [
+                    { name: "PRD.md", desc: "包含基础背景与需求的简化版产品需求文档。", icon: "book" }
+                ], icon: "lightning" },
+                { id: 5, label: "5. 迭代收尾", title: "任务收尾 & 版本控制", desc: "完成本次迭代的快速生成工作，更新项目日志。", artifacts: [
+                    { name: "ITERATION_LOG.md", desc: "记录本次迭代的过程、决策与核心结论。", icon: "clock" },
+                    { name: "CHANGELOG.md", desc: "面向用户的版本变更说明与特性列表。", icon: "tag" }
+                ], icon: "check" }
+            ]
+        };
+
+        // --- Icons Dictionary ---
+        const icons = {
+            doc: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`,
+            list: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>`,
+            map: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>`,
+            server: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>`,
+            bulb: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>`,
+            flow: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10-10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zm0 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>`,
+            layout: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>`,
+            code: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>`,
+            palette: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>`,
+            book: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>`,
+            clock: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+            tag: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>`,
+            sparkles: `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>`
+        };
+
+        // --- State ---
+        let currentMode = 'standard';
+        let currentStepId = 'prep';
+
+        const navNodesEl = document.getElementById('tree-nodes');
+        const svgEl = document.getElementById('tree-lines-svg');
+        const navContainerEl = document.getElementById('global-nav-container');
+        const mainEl = document.getElementById('main-content');
+        const glowBg = document.getElementById('glow-bg');
+
+        // --- Rendering ---
+        function renderNav() {
+            const isFastTrackActive = currentMode === 'fastTrack';
+            
+            // 1. Update Rows
+            document.getElementById('row-standard').className = `tree-row ${!isFastTrackActive ? 'active' : 'opacity-30'}`;
+            document.getElementById('row-fastTrack').className = `tree-row ${isFastTrackActive ? 'active' : 'opacity-30'}`;
+
+            // Helper to set node state
+            const setNodeState = (id, isActive, isCompleted) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.className = `tree-node ${isActive ? 'active' : (isCompleted ? 'completed' : '')}`;
+                }
+            };
+
+            // 2. Update Nodes
+            setNodeState('node-prep', currentStepId === 'prep', currentStepId !== 'prep');
+            setNodeState('node-init', currentStepId === 'init', currentStepId !== 'prep' && currentStepId !== 'init');
+
+            // Standard Nodes
+            setNodeState('node-s1', !isFastTrackActive && currentStepId === 1, !isFastTrackActive && currentStepId > 1);
+            setNodeState('node-s2', !isFastTrackActive && currentStepId === 2, !isFastTrackActive && currentStepId > 2);
+            setNodeState('node-s3', !isFastTrackActive && currentStepId === 3, !isFastTrackActive && currentStepId > 3);
+            setNodeState('node-s4', !isFastTrackActive && currentStepId === 4, !isFastTrackActive && currentStepId > 4);
+            setNodeState('node-s5', !isFastTrackActive && currentStepId === 5, !isFastTrackActive && currentStepId > 5);
+            setNodeState('node-s6', !isFastTrackActive && currentStepId === 6, false);
+
+            // Fast Track Nodes
+            setNodeState('node-f4', isFastTrackActive && currentStepId === 4, isFastTrackActive && currentStepId > 4);
+            setNodeState('node-f5', isFastTrackActive && currentStepId === 5, false);
+
+            // 3. Draw Lines (Update SVG)
+            requestAnimationFrame(drawLines);
+        }
+
+        const connectionsData = [
+            { id: 'link-prep-init', from: 'node-prep', to: 'node-init' },
+            { id: 'link-init-s1', from: 'node-init', to: 'node-s1', curved: true, branch: 'standard' },
+            { id: 'link-s1-s2', from: 'node-s1', to: 'node-s2', branch: 'standard' },
+            { id: 'link-s2-s3', from: 'node-s2', to: 'node-s3', branch: 'standard' },
+            { id: 'link-s3-s4', from: 'node-s3', to: 'node-s4', branch: 'standard' },
+            { id: 'link-s4-s5', from: 'node-s4', to: 'node-s5', branch: 'standard' },
+            { id: 'link-s5-s6', from: 'node-s5', to: 'node-s6', branch: 'standard' },
+            { id: 'link-init-f4', from: 'node-init', to: 'node-f4', curved: true, branch: 'fastTrack' },
+            { id: 'link-f4-f5', from: 'node-f4', to: 'node-f5', branch: 'fastTrack' }
+        ];
+
+        function drawLines() {
+            if (!svgEl || !navContainerEl) return;
+            
+            // 1. First ensure all paths exist and update their state
+            const isFastTrackActive = currentMode === 'fastTrack';
+            const activeLinks = [];
+            if (currentStepId !== 'prep') activeLinks.push('link-prep-init');
+            
+            if (!isFastTrackActive && currentStepId !== 'prep' && currentStepId !== 'init') {
+                activeLinks.push('link-init-s1');
+                if (currentStepId >= 2) activeLinks.push('link-s1-s2');
+                if (currentStepId >= 3) activeLinks.push('link-s2-s3');
+                if (currentStepId >= 4) activeLinks.push('link-s3-s4');
+                if (currentStepId >= 5) activeLinks.push('link-s4-s5');
+                if (currentStepId >= 6) activeLinks.push('link-s5-s6');
+            } else if (isFastTrackActive && currentStepId !== 'prep' && currentStepId !== 'init') {
+                activeLinks.push('link-init-f4');
+                if (currentStepId >= 5) activeLinks.push('link-f4-f5');
+            }
+
+            connectionsData.forEach((conn) => {
+                let pathEl = document.getElementById(conn.id);
+                if (!pathEl) {
+                    pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    pathEl.setAttribute('id', conn.id);
+                    pathEl.classList.add('tree-link');
+                    pathEl.setAttribute('fill', 'none');
+                    svgEl.appendChild(pathEl);
+                }
+
+                const isActive = activeLinks.includes(conn.id);
+                const strokeColor = isActive ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.15)';
+                const strokeWidth = isActive ? 2.5 : 2;
+                const filter = isActive ? 'drop-shadow(0 0 6px rgba(255,255,255,0.4))' : 'none';
+
+                pathEl.setAttribute('stroke', strokeColor);
+                pathEl.setAttribute('stroke-width', strokeWidth);
+                pathEl.style.filter = filter;
+                
+                // Flow logic trigger
+                if (isActive && !pathEl.dataset.active) {
+                    pathEl.dataset.active = 'true';
+                    pathEl.dataset.needsFlow = 'true';
+                } else if (!isActive && pathEl.dataset.active) {
+                    pathEl.style.strokeDashoffset = 0; 
+                    delete pathEl.dataset.active;
+                }
+            });
+
+            // 2. Update geometry and apply flow
+            updateLinesGeometry();
+            
+            // 3. Trigger tracking animation to follow bouncy nodes
+            startLineTracking();
+        }
+
+        function updateLinesGeometry() {
+            if (!svgEl || !navContainerEl) return;
+            const containerRect = navContainerEl.getBoundingClientRect();
+
+            connectionsData.forEach((conn) => {
+                const el1 = document.getElementById(conn.from);
+                const el2 = document.getElementById(conn.to);
+                const pathEl = document.getElementById(conn.id);
+                if (!el1 || !el2 || !pathEl) return;
+
+                const rect1 = el1.getBoundingClientRect();
+                const rect2 = el2.getBoundingClientRect();
+
+                const x1 = rect1.right - containerRect.left;
+                const y1 = rect1.top + rect1.height / 2 - containerRect.top;
+                
+                const x2 = rect2.left - containerRect.left;
+                let y2 = rect2.top + rect2.height / 2 - containerRect.top;
+
+                if (!conn.curved) {
+                    y2 = y1; // Force perfectly horizontal
+                }
+
+                let pathD = '';
+                if (conn.curved) {
+                    const controlPointX = x1 + (x2 - x1) * 0.5;
+                    pathD = `M ${x1} ${y1} C ${controlPointX} ${y1}, ${controlPointX} ${y2}, ${x2} ${y2}`;
+                } else {
+                    pathD = `M ${x1} ${y1} L ${x2} ${y2}`;
+                }
+
+                pathEl.setAttribute('d', pathD);
+
+                // Handle flow animation execution if flagged
+                if (pathEl.dataset.needsFlow === 'true') {
+                    const length = pathEl.getTotalLength() || 100;
+                    pathEl.style.strokeDasharray = length;
+                    pathEl.style.transition = 'none'; 
+                    pathEl.style.strokeDashoffset = length; 
+                    
+                    void pathEl.offsetWidth; // Force reflow
+                    
+                    pathEl.style.transition = 'stroke 0.5s ease, filter 0.5s ease, stroke-dashoffset 0.6s ease-in-out';
+                    pathEl.style.strokeDashoffset = 0; 
+                    delete pathEl.dataset.needsFlow;
+                } else if (pathEl.dataset.active === 'true') {
+                    // Update length smoothly on resize/tracking
+                    const length = pathEl.getTotalLength() || 100;
+                    pathEl.style.strokeDasharray = length;
+                }
+            });
+        }
+
+        let lineAnimFrame = null;
+        let lineAnimStart = 0;
+
+        function startLineTracking() {
+            lineAnimStart = performance.now();
+            if (!lineAnimFrame) {
+                const track = (time) => {
+                    updateLinesGeometry();
+                    if (time - lineAnimStart < 600) { // Track for 600ms
+                        lineAnimFrame = requestAnimationFrame(track);
+                    } else {
+                        lineAnimFrame = null;
+                    }
+                };
+                lineAnimFrame = requestAnimationFrame(track);
+            }
+        }
+
+        // Redraw lines on window resize
+        window.addEventListener('resize', () => {
+            updateLinesGeometry();
+        });
+
+        // Add tracking for hover effects
+        document.querySelectorAll('.tree-node').forEach(node => {
+            node.addEventListener('mouseenter', startLineTracking);
+            node.addEventListener('mouseleave', startLineTracking);
+        });
+
+        function renderContent() {
+            const steps = workflows[currentMode];
+            const stepData = steps.find(s => s.id === currentStepId);
+
+            // Trigger fade animation
+            mainEl.classList.remove('fade-enter-active');
+            void mainEl.offsetWidth; // trigger reflow
+            mainEl.classList.add('fade-enter');
+            
+            setTimeout(() => {
+                mainEl.classList.add('fade-enter-active');
+                mainEl.classList.remove('fade-enter');
+            }, 50);
+
+            // Change glow color slightly based on step
+            const colors = [
+                'rgba(120, 119, 198, 0.15)', // 0: Init
+                'rgba(56, 189, 248, 0.15)',  // 1: Kickoff
+                'rgba(167, 139, 250, 0.15)', // 2: Architecture
+                'rgba(244, 114, 182, 0.15)', // 3: Prototype
+                'rgba(52, 211, 153, 0.15)',  // 4: Docs
+                'rgba(251, 191, 36, 0.15)',  // 5: Wrapup
+                'rgba(248, 113, 113, 0.15)'  // 6: Interactive
+            ];
+            glowBg.style.background = `radial-gradient(circle, ${colors[stepData.id] || colors[0]} 0%, rgba(0, 0, 0, 0) 70%)`;
+
+            if (currentStepId === 'prep') {
+                // Prep Stage View
+                mainEl.innerHTML = `
+                    <div class="w-full flex flex-col h-full overflow-hidden">
+                        <div class="p-8 md:p-12 border-b border-white/10 shrink-0">
+                            <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-gradient mb-4">
+                                前置准备：环境与工具配置
+                            </h1>
+                            <p class="text-white/60 font-light text-lg">
+                                在开始自动化生成产品文档和交互原型之前，请确保您的本地环境已完成以下配置。
+                            </p>
+                        </div>
+                        
+                        <div class="flex-1 overflow-y-auto custom-scrollbar p-8 md:p-12 space-y-12">
+                            <!-- Section 1 -->
+                            <section>
+                                <h2 class="text-2xl font-semibold text-white/90 mb-6 flex items-center gap-3">
+                                    <span class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm">1</span>
+                                    编辑器工具的选择与要求
+                                </h2>
+                                <div class="bg-white/5 border border-white/10 rounded-2xl p-6 text-white/70 space-y-6">
+                                    <p class="leading-relaxed">传统的网页版对话框（如 ChatGPT Web 版）无法直接操作本地文件。我们需要一款<strong class="text-white">深度融合 AI 的现代化代码编辑器（AI IDE）</strong>作为主力工作台。</p>
+                                    
+                                    <div class="space-y-4">
+                                        <div class="bg-black/30 rounded-xl p-4">
+                                            <h4 class="text-white/90 font-medium mb-2">直接读取与操作资源管理器（Workspace Awareness）</h4>
+                                            <p class="text-sm">AI 必须能够直接读取你本地的项目目录结构，理解 Markdown 需求文档、HTML 原型文件层级关系，并能直接在指定目录下创建修改文件，告别人肉“复制粘贴”。</p>
+                                        </div>
+                                        <div class="bg-black/30 rounded-xl p-4">
+                                            <h4 class="text-white/90 font-medium mb-2">支持并发多对话任务（Multi-Chat Sessions）</h4>
+                                            <p class="text-sm">实际工作流中需要“多线操作”。例如一边梳理 ER 图，一边审查 HTML 样式冲突。支持多任务并行能极大提升速度。</p>
+                                        </div>
+                                        <div class="bg-black/30 rounded-xl p-4">
+                                            <h4 class="text-white/90 font-medium mb-2">支持自定义智能技能 / 工作流（Custom Skills）</h4>
+                                            <p class="text-sm">将复杂的排版规则、代码逻辑封装成“技能”，让 AI 严格按照既定范式执行，保证产出稳定。</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-6 pt-6 border-t border-white/10">
+                                        <h4 class="text-white/90 font-medium mb-4">推荐使用的 AI 代码编辑器：</h4>
+                                        <ul class="space-y-3 text-sm">
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">Trae IDE (国产)</strong>：字节跳动推出，原生集成 Claude 3.5 Sonnet / GPT-4o 等顶级大模型，拥有强大的自定义 Skill 生态和 Builder 模式，完美胜任复杂目录操作。</div></li>
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">通义灵码 / Tongyi Lingma (国产)</strong>：阿里巴巴推出，提供强大的代码补全、智能问答和研发流辅助。</div></li>
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">腾讯云 AI 代码助手 (国产)</strong>：腾讯混元大模型驱动，深度结合腾讯研发生态。</div></li>
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">MarsCode (国产)</strong>：基于字节跳动豆包大模型（原网易提及有误，实为字节系），具备智能补全与出色的问答能力。</div></li>
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">DeepSeek IDE / 插件 (国产)</strong>：利用深度求索 DeepSeek-Coder 模型的 IDE 插件形式，以极高的性价比和推理能力快速完成日常代码任务。</div></li>
+                                            <div class="my-2 border-b border-white/5"></div>
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">Cursor (国外)</strong>：最成熟的 AI 编辑器之一，Composer 功能支持多文件穿梭修改，体验标杆。</div></li>
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">Windsurf (国外)</strong>：强大的 Cascade 模式，能自主分析项目结构并执行复杂的文件任务与终端命令。</div></li>
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">Project IDX (国外)</strong>：Google (Gemini 旗下) 推出的云端 AI IDE，深度集成全栈开发与模拟器。</div></li>
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">Claude Code (国外)</strong>：Anthropic (Claude 旗下) 推出的 CLI 级 AI 编码工具，能直接在终端理解 codebase 并执行任务。</div></li>
+                                            <li class="flex gap-3"><span class="text-blue-400">◆</span> <div><strong class="text-white">GitHub Copilot / Codex (国外)</strong>：微软基于 OpenAI Codex 打造的老牌王者，在 VS Code 中拥有统治级的生态。</div></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Section 2 -->
+                            <section>
+                                <h2 class="text-2xl font-semibold text-white/90 mb-6 flex items-center gap-3">
+                                    <span class="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 text-sm">2</span>
+                                    必须提前安装的环境与插件
+                                </h2>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- NPM -->
+                                    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 text-white/70 flex flex-col h-full">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <h3 class="text-xl font-medium text-white/90">Node.js (npm)</h3>
+                                            <span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-medium">【环境必装】</span>
+                                        </div>
+                                        <ul class="space-y-4 text-sm flex-1">
+                                            <li><strong class="text-white">作用：</strong>JavaScript 的包管理工具，用于执行命令行指令。</li>
+                                            <li><strong class="text-white">为什么必须装：</strong>我们需要使用 <code>npx skills add</code> 等命令行工具来从云端仓库（如 GitHub）一键下载并安装我们需要的 PM 工作流 Skill。</li>
+                                            <li><strong class="text-white">如何安装：</strong>前往 <a href="https://nodejs.org" target="_blank" class="text-blue-400 hover:underline">Node.js 官网</a> 下载并安装长期支持版 (LTS)。</li>
+                                        </ul>
+                                    </div>
+
+                                    <!-- Live Server -->
+                                    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 text-white/70 flex flex-col h-full">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <h3 class="text-xl font-medium text-white/90">Live Server</h3>
+                                            <span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-medium">【插件必装】</span>
+                                        </div>
+                                        <ul class="space-y-4 text-sm flex-1">
+                                            <li><strong class="text-white">作用：</strong>在本地快速启动一个开发级 HTTP 服务器，并在浏览器中实时预览 HTML 文件。</li>
+                                            <li><strong class="text-white">为什么必须装：</strong>交互 PRD 使用 iframe 嵌套原型。直接双击 HTML 会触发浏览器的<strong class="text-red-300">同源策略限制</strong>，导致内外无法跨域通信（如点击目录触发原型失效）。</li>
+                                            <li><strong class="text-white">如何使用：</strong>在编辑器扩展商店搜索安装后，在生成的 HTML 文件上右键选择 "Open with Live Server" 即可。</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Section 3 -->
+                            <section>
+                                <h2 class="text-2xl font-semibold text-white/90 mb-6 flex items-center gap-3">
+                                    <span class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 text-sm">3</span>
+                                    核心 Skill（智能技能）的安装与配置
+                                </h2>
+                                <div class="bg-white/5 border border-white/10 rounded-2xl p-6 text-white/70 space-y-6">
+                                    <p class="leading-relaxed">在开始制作之前，我们需要先将所需技能（如 <code class="text-green-300 bg-green-500/10 px-2 py-0.5 rounded">pm-workflow</code>）植入到编辑器中。</p>
+                                    
+                                    <div class="space-y-4 text-sm">
+                                        <h4 class="text-white/90 font-medium">安装作用域与目录说明：</h4>
+                                        <p>根据你的需求，技能可以安装在两个不同的层级：</p>
+                                        <ul class="space-y-3 pl-2">
+                                            <li class="flex gap-3">
+                                                <span class="text-green-400">❶</span> 
+                                                <div>
+                                                    <strong class="text-white">项目级安装 (Project Scope)</strong>：只在当前项目中生效。<br>
+                                                    目录位置：通常存放在当前项目根目录的隐藏文件夹中，例如 <code>./.trae/skills/</code> 或 <code>./.cursor/rules/</code>。
+                                                </div>
+                                            </li>
+                                            <li class="flex gap-3">
+                                                <span class="text-green-400">❷</span> 
+                                                <div>
+                                                    <strong class="text-white">全局级安装 (Global Scope)</strong>：安装后，该电脑上的所有项目都可以使用该技能。<br>
+                                                    目录位置：通常存放在操作系统的用户主目录下，且<strong class="text-white">隐藏文件夹的名称通常就是软件名称</strong>（如 <code>.trae</code>, <code>.cursor</code>）。<br>
+                                                    <span class="text-white/50">▹ macOS / Linux: </span><code>~/.trae/skills/</code><br>
+                                                    <span class="text-white/50">▹ Windows: </span><code>C:\Users\您的用户名\.trae\skills\</code><br>
+                                                    注：使用 CLI 工具时加上 <code>-g</code> 参数即可自动实现全局安装。
+                                                </div>
+                                            </li>
+                                        </ul>
+                                        
+                                        <div class="bg-[#0d1117] p-4 rounded-xl font-mono text-xs text-gray-300 overflow-x-auto border border-white/5 mt-4">
+# 典型的 Skill 目录结构示例
+# (以项目级安装为例，根目录下会多出一个包含 skill 文件的工具夹)
+my-project/
+├── .trae/                   # 对应工具名称的文件夹 (例如 Trae 是 .trae，Cursor 是 .cursor)
+│   └── skills/              # 存放所有技能的统一目录
+│       └── pm-workflow/     # 当前安装的技能名称
+│           ├── SKILL.md     # 核心：定义了 AI 的系统提示词、行为边界和生成标准
+│           └── references/  # 存放复杂的参考模板与协议标准
+│               ├── Log_Format.md 
+│               └── Fast_Track.md
+├── src/
+└── package.json
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-6 pt-6 border-t border-white/10">
+                                        <h4 class="text-white/90 font-medium mb-4">一键安装指令：</h4>
+                                        <p class="text-sm mb-4">如果你已经安装了 Node.js，可以直接在终端执行以下命令进行全局安装：</p>
+                                        <div class="bg-black/30 rounded-xl p-4 flex items-center justify-between group border border-white/10 hover:border-white/30 transition-colors">
+                                            <code class="text-green-400 font-mono text-sm">npx skills add ZerOne0000001/Chat-To-PRD@pm-workflow -g</code>
+                                            <button onclick="navigator.clipboard.writeText('npx skills add ZerOne0000001/Chat-To-PRD@pm-workflow -g'); this.innerText='已复制'; setTimeout(() => this.innerText='复制', 2000);" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-white transition-colors">复制</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-6 pt-6 border-t border-white/10">
+                                        <h4 class="text-white/90 font-medium mb-4">如何验证安装成功：</h4>
+                                        <p class="text-sm mb-4">最通用直接的验证方法就是<strong class="text-white">直接在 AI 对话框中询问它</strong>：</p>
+                                        <ol class="list-decimal pl-5 space-y-2 text-sm">
+                                            <li>确保技能包已放入指定目录，建议重启编辑器以加载最新配置。</li>
+                                            <li>打开 AI Chat 面板，向 AI 发送：<br>
+                                                <code class="inline-block mt-2 px-3 py-2 bg-white/10 rounded text-white border border-white/20">"告诉我当前你能找到并使用的本地 Skill（智能技能）有哪些？"</code>
+                                            </li>
+                                            <li>如果返回列表中包含 <code>pm-workflow</code>，说明安装成功，可以开始后续制作。</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </section>
+                            
+                            <!-- Bottom Spacing -->
+                            <div class="h-8"></div>
+                        </div>
+
+                        <!-- Fixed Bottom Controls -->
+                        <div class="p-6 md:p-8 border-t border-white/10 shrink-0 flex justify-end bg-black/20 backdrop-blur-md">
+                            <button onclick="nextStep()" class="px-8 py-3 bg-white text-black rounded-full font-medium hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                                完成准备，下一步 →
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (currentStepId === 'init') {
+                // Scenario Selector View
+                mainEl.innerHTML = `
+                    <div class="w-full p-8 md:p-20 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <div class="absolute -top-40 -right-40 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+                        
+                        <h1 class="text-4xl md:text-6xl font-bold tracking-tight text-gradient mb-6">
+                            pm-workflow
+                        </h1>
+                        <p class="text-lg md:text-xl text-white/60 font-light leading-relaxed max-w-2xl mb-16">
+                            全流程产品设计向导，负责迭代生命周期管理并按需调度子技能。请选择您当前的需求流转场景：
+                        </p>
+                        
+                        <div class="flex flex-col sm:flex-row gap-6 w-full max-w-3xl">
+                            <!-- Standard Mode -->
+                            <div onclick="setMode('standard')" class="scenario-btn flex-1 p-8 text-left ${currentMode === 'standard' ? 'active' : ''} group relative">
+                                ${currentMode === 'standard' ? '<div class="absolute top-4 right-4 w-3 h-3 rounded-full bg-white shadow-[0_0_10px_#fff]"></div>' : ''}
+                                <h3 class="text-2xl font-semibold text-white/90 mb-3 group-hover:text-white">标准工作流</h3>
+                                <p class="text-sm text-white/50 leading-relaxed">
+                                    完整生命周期：包含需求启动、架构设计、原型制作、综合 PRD 与最终交互原型的全链路生成。
+                                </p>
+                            </div>
+                            
+                            <!-- Fast Track Mode -->
+                            <div onclick="setMode('fastTrack')" class="scenario-btn flex-1 p-8 text-left ${currentMode === 'fastTrack' ? 'active' : ''} group relative">
+                                ${currentMode === 'fastTrack' ? '<div class="absolute top-4 right-4 w-3 h-3 rounded-full bg-white shadow-[0_0_10px_#fff]"></div>' : ''}
+                                <h3 class="text-2xl font-semibold text-white/90 mb-3 group-hover:text-white">快速通道</h3>
+                                <p class="text-sm text-white/50 leading-relaxed">
+                                    敏捷模式：跳过繁琐的中间件分析与原型制作，直接根据简短对话输出最终版本的 PRD。
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="mt-16">
+                            <button onclick="nextStep()" class="px-8 py-3 bg-white text-black rounded-full font-medium hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                                开始演示
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Standard Stage View
+                let artifactsHtml = stepData.artifacts.map(a => `
+                    <div class="file-item p-4 flex items-center gap-4 sm:gap-6 cursor-default">
+                        <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/70 shadow-inner">
+                            ${icons[a.icon] || icons['doc']}
+                        </div>
+                        <div>
+                            <h4 class="text-lg sm:text-xl font-medium text-white/90 mb-1 break-all">${a.name}</h4>
+                            <p class="text-xs sm:text-sm text-white/40 font-light">${a.desc}</p>
+                        </div>
+                    </div>
+                `).join('');
+
+                if (stepData.artifacts.length === 0) {
+                    artifactsHtml = '<div class="p-8 text-center text-white/30 text-sm border border-dashed border-white/10 rounded-2xl">该阶段暂无实体文件输出</div>';
+                }
+
+                mainEl.innerHTML = `
+                    <!-- Left: Stage Info -->
+                    <div class="w-full md:w-5/12 p-8 lg:p-16 xl:p-20 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative overflow-hidden">
+                        <div class="absolute -left-20 -top-20 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+                        
+                        <div class="relative z-10 flex-1 flex flex-col justify-center">
+                            <span class="text-xs sm:text-sm font-medium tracking-widest uppercase text-white/40 mb-4 block">第 ${stepData.id} 阶段</span>
+                            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gradient mb-6 sm:mb-8 leading-tight">
+                                ${stepData.title.replace(' ', '<br>')}
+                            </h1>
+                            <p class="text-base sm:text-lg lg:text-xl text-white/60 font-light leading-relaxed">
+                                ${stepData.desc}
+                            </p>
+                        </div>
+
+                        <!-- Mobile-only controls inside left pane -->
+                        <div class="flex md:hidden justify-between mt-8 pt-6 border-t border-white/10">
+                            <button onclick="prevStep()" class="text-sm text-white/50 hover:text-white transition-colors">← 上一步</button>
+                            <button onclick="nextStep()" class="text-sm text-white/50 hover:text-white transition-colors">下一步 →</button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Artifacts -->
+                    <div class="w-full md:w-7/12 p-8 lg:p-16 xl:p-20 flex flex-col justify-center bg-white/[0.02] relative">
+                        <h3 class="text-xs sm:text-sm font-medium tracking-widest uppercase text-white/40 mb-6 sm:mb-8">核心输出产物</h3>
+                        
+                        <div class="flex flex-col gap-2 flex-1 justify-center">
+                            ${artifactsHtml}
+                        </div>
+
+                        <!-- Desktop controls -->
+                        <div class="hidden md:flex justify-between absolute bottom-8 left-16 right-16">
+                            <button onclick="prevStep()" class="px-4 py-2 rounded-full border border-white/10 text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all">← 上一步</button>
+                            <button onclick="nextStep()" class="px-4 py-2 rounded-full border border-white/10 text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all">下一步 →</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // --- Actions ---
+        function setMode(mode) {
+            if (currentMode !== mode) {
+                currentMode = mode;
+                // DO NOT reset step, allow direct jump
+                renderNav();
+                renderContent();
+            }
+        }
+
+        let jumpTargetId = null;
+
+        async function goToStep(id, mode = null) {
+            if (mode && mode !== currentMode) {
+                currentMode = mode;
+            }
+            
+            const steps = currentMode === 'standard' 
+                ? ['prep', 'init', 1, 2, 3, 4, 5, 6] 
+                : ['prep', 'init', 4, 5];
+
+            const currentIndex = steps.indexOf(currentStepId);
+            const targetIndex = steps.indexOf(id);
+
+            jumpTargetId = id;
+
+            if (targetIndex > currentIndex && (targetIndex - currentIndex > 1)) {
+                // Sequential jump forward
+                for (let i = currentIndex + 1; i <= targetIndex; i++) {
+                    if (jumpTargetId !== id) break; // User clicked another step, cancel sequence
+                    
+                    currentStepId = steps[i];
+                    renderNav();
+                    
+                    if (i === targetIndex) {
+                        renderContent();
+                    } else {
+                        // Wait for line flow animation before jumping to next
+                        await new Promise(r => setTimeout(r, 400));
+                    }
+                }
+            } else {
+                // Normal click or jumping backwards
+                currentStepId = id;
+                renderNav();
+                renderContent();
+            }
+        }
+
+        function nextStep() {
+            const steps = workflows[currentMode];
+            const currentIndex = steps.findIndex(s => s.id === currentStepId);
+            if (currentIndex < steps.length - 1) {
+                goToStep(steps[currentIndex + 1].id);
+            }
+        }
+
+        function prevStep() {
+            const steps = workflows[currentMode];
+            const currentIndex = steps.findIndex(s => s.id === currentStepId);
+            if (currentIndex > 0) {
+                goToStep(steps[currentIndex - 1].id);
+            }
+        }
+
+        // --- Init ---
+        renderNav();
+        renderContent();
+    </script>
+</body>
+</html>
