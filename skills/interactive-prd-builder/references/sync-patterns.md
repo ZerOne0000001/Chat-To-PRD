@@ -72,6 +72,12 @@ scrollDebounceTimer = setTimeout(() => {
         const newSrcRaw = `./Prototypes/${prototypeFile}`; // 根据实际情况调整相对路径
         const newUrl = new URL(newSrcRaw, baseUrl);
         
+        // C. 同步更新右上角“新标签页打开”按钮的链接
+        const openTabBtn = document.getElementById('open-prototype-btn');
+        if (openTabBtn) {
+            openTabBtn.href = newUrl.href;
+        }
+
         const triggerActions = (iframeWin, hash) => {
             // A. 暴力清场：强制清除原型自带的焦点模式或暗色遮罩残留
             const iframeDoc = iframeWin.document;
